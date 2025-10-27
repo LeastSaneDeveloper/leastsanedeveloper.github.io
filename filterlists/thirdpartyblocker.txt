@@ -1,0 +1,7 @@
+! Title: Third-Party Blocker
+! Description: Blocks all 3rd-party resources
+! Version: 2025.10.27
+! Expires: never
+! License: GPL-3.0
+
+||*^$third-party
