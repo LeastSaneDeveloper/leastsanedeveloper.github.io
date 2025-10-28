@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tower Defence</title>
+<style>
+body {
+    margin: 0;
+    background: radial-gradient(circle at center, #0f0f1f, #05050a);
+    color: #fff;
+    font-family: 'Orbitron', sans-serif;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    height: 100vh;
+}
+
+#ui {
+    background: rgba(0,0,0,0.6);
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 0 20px #0ff;
+    margin-top: 20px;
+    text-align: center;
+}
+
+#ui div {
+    margin-bottom: 8px;
+    font-size: 16px;
+    color: #0ff;
+    text-shadow: 0 0 6px #0ff;
+}
+
+button {
+    margin: 4px;
+    padding: 6px 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(145deg, #00ffff, #00aaff);
+    color: #000;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px #0ff, 0 0 25px #00f;
+}
+
+canvas {
+    margin-top: 10px;
+    background: linear-gradient(to bottom, #111, #000);
+    box-shadow: 0 0 40px #0ff;
+    border-radius: 15px;
+    display: block;
+}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+</head>
+<body>
+<div id="ui">
+  <div>Gold: <span id="gold">100</span></div>
+  <div>Health: <span id="health">100</span></div>
+  <div>Wave: <span id="wave">0</span></div>
+  <div>Next Wave In: <span id="timer">0</span>s</div>
+  <button id="upgradeDamage">Upgrade Damage (50)</button>
+  <button id="upgradeFireRate">Upgrade Fire Rate (75)</button>
+  <button id="upgradeSplash">Upgrade Splash (100)</button>
+  <button id="upgradeHealth">Upgrade Health (50)</button>
+  <button id="upgradeDefense">Upgrade Defense (50)</button>
+</div>
+<canvas id="gameCanvas" width="800" height="600"></canvas>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+let gold = 100, waveNumber = 0, waveCountdown = 0;
+document.getElementById('gold').innerText = gold;
+document.getElementById('wave').innerText = waveNumber;
+document.getElementById('timer').innerText = waveCountdown;
+document.getElementById('health').innerText = 100;
+
+const tower = {
+  x: canvas.width/2,
+  y: canvas.height/2,
+  damage: 20,
+  cooldownMax: 20,
+  cooldown: 0,
+  splash: 0,
+  health: 100,
+  defense: 5,
+  targetStrategy: 'closest'
+};
+
+const enemies = [], bullets = [], splashEffects = [];
+
+function distance(a,b){ return Math.hypot(a.x-b.x, a.y-b.y); }
+
+class Enemy {
+  constructor(hp, speed, boss=false){
+    const edge = Math.floor(Math.random()*4);
+    if(edge===0){ this.x=0; this.y=Math.random()*canvas.height; }
+    else if(edge===1){ this.x=canvas.width; this.y=Math.random()*canvas.height; }
+    else if(edge===2){ this.y=0; this.x=Math.random()*canvas.width; }
+    else{ this.y=canvas.height; this.x=Math.random()*canvas.width; }
+    this.hp = hp;
+    this.speed = speed;
+    this.boss = boss;
+  }
+  update(){
+    let dx = tower.x - this.x;
+    let dy = tower.y - this.y;
+    let dist = Math.hypot(dx,dy);
+    if(dist < this.speed){
+      tower.health -= 10;
+      enemies.splice(enemies.indexOf(this),1);
+      return;
+    }
+    this.x += dx/dist*this.speed;
+    this.y += dy/dist*this.speed;
+  }
+  draw(){
+    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.boss?20:10);
+    gradient.addColorStop(0, this.boss?'#ff4d4d':'#ffaa00');
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.boss?20:10,0,Math.PI*2);
+    ctx.fill();
+    ctx.fillStyle='lime';
+    ctx.fillRect(this.x-10,this.y-15,20*(this.hp/(this.boss?200+waveNumber*50:30+waveNumber*10)),3);
+  }
+}
+
+class Bullet {
+  constructor(x,y,target,damage,splash=0){
+    this.x=x;
+    this.y=y;
+    this.target=target;
+    this.damage=damage;
+    this.splash=splash;
+  }
+  update(){
+    const dx=this.target.x-this.x, dy=this.target.y-this.y;
+    const dist=Math.hypot(dx,dy);
+    if(dist<5){
+      this.target.hp -= this.damage;
+      if(this.splash>0){
+        enemies.forEach(e=>{
+          if(e!==this.target && distance(e,this.target)<=this.splash) e.hp -= this.damage/2;
+        });
+        splashEffects.push(new SplashEffect(this.target.x,this.target.y,this.splash));
+      }
+      bullets.splice(bullets.indexOf(this),1);
+      if(this.target.hp<=0){
+        gold += this.target.boss?50:10;
+        document.getElementById('gold').innerText = gold;
+        enemies.splice(enemies.indexOf(this.target),1);
+      }
+      return;
+    }
+    this.x += dx/dist*7;
+    this.y += dy/dist*7;
+  }
+  draw(){
+    const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, 5);
+    gradient.addColorStop(0, '#ffff00');
+    gradient.addColorStop(1, 'rgba(255,255,0,0)');
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,5,0,Math.PI*2);
+    ctx.fill();
+  }
+}
+
+class SplashEffect {
+  constructor(x,y,radius){
+    this.x = x;
+    this.y = y;
+    this.radius = 0;
+    this.maxRadius = radius;
+    this.alpha = 0.5;
+  }
+  update(){
+    this.radius += 2;
+    this.alpha -= 0.02;
+  }
+  draw(){
+    ctx.strokeStyle = `rgba(255,255,0,${this.alpha})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);
+    ctx.stroke();
+  }
+}
+
+function spawnWave(){
+  waveNumber++;
+  document.getElementById('wave').innerText = waveNumber;
+  const count = 5 + waveNumber*2;
+  for(let i=0;i<count;i++){
+    const isBoss = (waveNumber%5===0 && i===0);
+    const type = Math.random();
+    if(type<0.6) enemies.push(new Enemy(30+waveNumber*10,1+waveNumber*0.1,isBoss));
+    else if(type<0.85) enemies.push(new Enemy(50+waveNumber*12,1+waveNumber*0.15,false));
+    else enemies.push(new Enemy(20+waveNumber*8,2+waveNumber*0.2,false));
+  }
+}
+
+function getTarget(){
+  if(tower.targetStrategy==='closest'){
+    return enemies.reduce((closest,e)=>{
+      const dist = distance(e,tower);
+      if(!closest || dist < distance(closest,tower)) return e;
+      return closest;
+    }, null);
+  } else if(tower.targetStrategy==='lowestHP'){
+    return enemies.reduce((lowest,e)=>{
+      if(!lowest || e.hp < lowest.hp) return e;
+      return lowest;
+    }, null);
+  }
+  return enemies[0] || null;
+}
+
+function update(){
+  if(tower.cooldown>0) tower.cooldown--;
+  if(tower.cooldown===0){
+    let target = getTarget();
+    if(target){
+      bullets.push(new Bullet(tower.x,tower.y,target,tower.damage,tower.splash));
+      tower.cooldown=tower.cooldownMax;
+    }
+  }
+  bullets.forEach(b=>b.update());
+  enemies.forEach(e=>e.update());
+  splashEffects.forEach((s,i)=>{
+    s.update();
+    if(s.alpha <= 0) splashEffects.splice(i,1);
+  });
+
+  if(tower.health<=0){
+    alert("You died!");
+    tower.health = 100;
+    gold = 100;
+    waveNumber = 0;
+    waveCountdown = 0;
+    enemies.length = 0;
+    bullets.length = 0;
+    splashEffects.length = 0;
+  }
+
+  if(enemies.length===0 && waveCountdown<=0) waveCountdown=5;
+  if(waveCountdown>0){
+    waveCountdown -= 1/60;
+    if(waveCountdown<=0) spawnWave();
+    document.getElementById('timer').innerText = Math.ceil(waveCountdown);
+  }
+
+  document.getElementById('health').innerText = tower.health;
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  const towerGradient = ctx.createRadialGradient(tower.x, tower.y, 0, tower.x, tower.y, 20);
+  towerGradient.addColorStop(0, '#00ffff');
+  towerGradient.addColorStop(1, 'rgba(0,255,255,0)');
+  ctx.fillStyle = towerGradient;
+  ctx.beginPath();
+  ctx.arc(tower.x,tower.y,20,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.fillStyle = 'red';
+  ctx.fillRect(tower.x-25, tower.y-35, 50*(tower.health/100), 5);
+
+  enemies.forEach(e=>e.draw());
+  bullets.forEach(b=>b.draw());
+  splashEffects.forEach(s=>s.draw());
+}
+
+function gameLoop(){ update(); draw(); requestAnimationFrame(gameLoop); }
+gameLoop();
+
+document.getElementById('upgradeDamage').addEventListener('click',()=>{
+  if(gold>=50){ gold-=50; tower.damage+=10; document.getElementById('gold').innerText=gold; }
+});
+document.getElementById('upgradeFireRate').addEventListener('click',()=>{
+  if(gold>=75){ gold-=75; tower.cooldownMax=Math.max(5, tower.cooldownMax-5); document.getElementById('gold').innerText=gold; }
+});
+document.getElementById('upgradeSplash').addEventListener('click',()=>{
+  if(gold>=100){ gold-=100; tower.splash+=30; document.getElementById('gold').innerText=gold; }
+});
+document.getElementById('upgradeHealth').addEventListener('click',()=>{
+  if(gold>=50){ gold-=50; tower.health +=20; if(tower.health>200) tower.health=200; document.getElementById('gold').innerText=gold; }
+});
+document.getElementById('upgradeDefense').addEventListener('click',()=>{
+  if(gold>=50){ gold-=50; tower.defense +=2; document.getElementById('gold').innerText=gold; }
+});
+</script>
+</body>
+</html>
