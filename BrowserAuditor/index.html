@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Browser Auditor</title>
+    <style>
+        :root {
+            font-family: "San Francisco", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            --bg: #f4f6f8;
+            --card-bg: #ffffff;
+            --primary: #0a64c2;
+            --primary-hover: #084a8c;
+            --secondary: #e0e0e5;
+            --secondary-hover: #c7c7cc;
+            --text: #1c1c1e;
+            --muted: #6e6e73;
+            --shadow: rgba(0, 0, 0, 0.15);
+            --radius: 20px;
+        }
+
+        body {
+            margin: 0;
+            padding: 40px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: none;
+            padding: 12px 22px;
+            border-radius: var(--radius);
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        button.primary {
+            background: linear-gradient(135deg, var(--primary), #0659a1);
+            color: #fff;
+        }
+
+        button.primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px var(--shadow);
+        }
+
+        button.secondary {
+            background: var(--secondary);
+            color: var(--text);
+        }
+
+        button.secondary:hover {
+            background: var(--secondary-hover);
+            transform: translateY(-2px);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 24px;
+        }
+
+        .card {
+            background: linear-gradient(145deg, #ffffff, #f7f8fa);
+            padding: 25px;
+            border-radius: var(--radius);
+            box-shadow: 0 6px 25px var(--shadow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            max-width: 100%;
+            min-height: 150px;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px var(--shadow);
+        }
+
+        .card h3 {
+            margin: 0 0 12px;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .card table {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .card table th,
+        .card table td {
+            word-break: break-word;
+            overflow-wrap: break-word;
+            text-align: left;
+            padding: 6px 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .card table th {
+            font-weight: 700;
+            background: #f0f0f0;
+        }
+
+        ul {
+            padding-left: 22px;
+            margin: 0;
+        }
+
+        footer {
+            margin-top: 40px;
+            font-size: 13px;
+            color: var(--muted);
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Browser Auditor</h1>
+    </header>
+
+    <div class="controls">
+        <button class="primary" id="runAll">Run Audit</button>
+        <button class="secondary" id="export">Export JSON</button>
+        <button class="secondary" id="copy">Copy JSON</button>
+    </div>
+
+    <div class="grid" id="results"></div>
+
+    <footer>Some external tests may fail if blocked. Client-side fingerprints always run.</footer>
+
+    <script>
+        (async function () {
+            const el = id => document.getElementById(id);
+            const results = el('results');
+            let lastReport = {};
+
+            function card(title, html) {
+                const div = document.createElement('div');
+                div.className = 'card';
+                div.innerHTML = `<h3>${title}</h3>${html}`;
+                results.appendChild(div);
+                return div;
+            }
+
+            async function sha256hex(str) {
+                const buf = new TextEncoder().encode(str);
+                const hash = await crypto.subtle.digest('SHA-256', buf);
+                return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+
+            async function fingerprint() {
+                const nav = navigator || {};
+                const screenInfo = {
+                    width: screen.width,
+                    height: screen.height,
+                    availWidth: screen.availWidth,
+                    availHeight: screen.availHeight,
+                    colorDepth: screen.colorDepth,
+                    pixelDepth: screen.pixelDepth
+                };
+
+                const data = {
+                    timestamp: new Date().toISOString(),
+                    userAgent: nav.userAgent,
+                    platform: nav.platform,
+                    hardwareConcurrency: nav.hardwareConcurrency,
+                    deviceMemory: nav.deviceMemory,
+                    languages: nav.languages || [nav.language].filter(Boolean),
+                    cookiesEnabled: nav.cookieEnabled,
+                    doNotTrack: nav.doNotTrack || nav.msDoNotTrack || null,
+                    screen: screenInfo,
+                    timezoneOffset: new Date().getTimezoneOffset(),
+                    tz: Intl?.DateTimeFormat?.resolvedOptions?.().timeZone || null,
+                    fontsProbe: null,
+                    plugins: nav.plugins ? Array.from(nav.plugins).map(p => p.name) : null,
+                    mimeTypes: nav.mimeTypes ? Array.from(nav.mimeTypes).map(m => m.type) : null,
+                    connection: nav.connection ? {
+                        effectiveType: nav.connection.effectiveType,
+                        downlink: nav.connection.downlink,
+                        rtt: nav.connection.rtt,
+                        type: nav.connection.type
+                    } : null,
+                    battery: null,
+                    permissions: null,
+                    canvasFP: null,
+                    webglFP: null,
+                    webglRenderer: null,
+                    audioFP: null
+                };
+
+                try { if (nav.getBattery) { const b = await nav.getBattery(); data.battery = { charging: b.charging, level: b.level }; } } catch { }
+
+                try {
+                    const perms = ['geolocation', 'notifications', 'persistent-storage', 'push', 'camera', 'microphone'];
+                    data.permissions = {};
+                    for (const p of perms) {
+                        try { const s = await nav.permissions.query({ name: p }); data.permissions[p] = s.state; } catch { data.permissions[p] = 'unsupported'; }
+                    }
+                } catch { }
+
+                try {
+                    const c = document.createElement('canvas');
+                    c.width = 400;
+                    c.height = 200;
+                    const ctx = c.getContext('2d');
+                    ctx.fillStyle = '#f60';
+                    ctx.fillRect(0, 0, 400, 200);
+                    ctx.textBaseline = 'top';
+                    ctx.font = '16px Arial';
+                    ctx.fillStyle = '#069';
+                    ctx.fillText('Browser Auditor — Canvas', 10, 10);
+                    ctx.globalCompositeOperation = 'multiply';
+                    ctx.fillStyle = 'rgba(255,0,255,0.5)';
+                    ctx.beginPath();
+                    ctx.arc(80, 80, 50, 0, Math.PI * 2);
+                    ctx.fill();
+                    data.canvasFP = await sha256hex(c.toDataURL());
+                } catch (e) { data.canvasFP = `error:${e.message}`; }
+
+                try {
+                    const canvas = document.createElement('canvas');
+                    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                    if (gl) {
+                        const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+                        const renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : null;
+                        const vendor = dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : null;
+                        const params = {
+                            MAX_VERTEX_UNIFORM_VECTORS: gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS),
+                            MAX_VARYING_VECTORS: gl.getParameter(gl.MAX_VARYING_VECTORS),
+                            MAX_COMBINED_TEXTURE_IMAGE_UNITS: gl.getParameter(gl.MAX_COMBINED_TEXTURE_IMAGE_UNITS)
+                        };
+                        data.webglFP = await sha256hex(JSON.stringify(params));
+                        data.webglRenderer = { renderer, vendor, params };
+                    } else data.webglFP = 'no-webgl';
+                } catch (e) { data.webglFP = `error:${e.message}`; }
+
+                try {
+                    const AudioCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+                    if (AudioCtx) {
+                        const ctx = new AudioCtx(1, 44100, 44100);
+                        const osc = ctx.createOscillator();
+                        const comp = ctx.createDynamicsCompressor();
+                        osc.type = 'sine';
+                        osc.frequency.value = 445;
+                        osc.connect(comp);
+                        comp.connect(ctx.destination);
+                        osc.start(0);
+                        const buf = await ctx.startRendering();
+                        const ch = buf.getChannelData(0).slice(0, 1024);
+                        let s = 0;
+                        for (let i = 0; i < ch.length; i++) s += Math.abs(ch[i]);
+                        data.audioFP = s.toFixed(6);
+                    }
+                } catch (e) { data.audioFP = `error:${e.message}`; }
+
+                try {
+                    const testFonts = ['Arial', 'Times New Roman', 'Courier New', 'Segoe UI Symbol', 'Noto Color Emoji', 'Roboto', 'Liberation Serif', 'NonexistentFontXYZ123'];
+                    const fontMap = {};
+                    function getWidth(font) {
+                        const span = document.createElement('span');
+                        span.style.fontFamily = font;
+                        span.style.fontSize = '24px';
+                        span.style.visibility = 'hidden';
+                        span.textContent = 'mmmmmmmmmmlli';
+                        document.body.appendChild(span);
+                        const w = span.offsetWidth;
+                        document.body.removeChild(span);
+                        return w;
+                    }
+                    for (const f of testFonts) fontMap[f] = getWidth(`'${f}', monospace`);
+                    data.fontsProbe = fontMap;
+                } catch (e) { data.fontsProbe = `error:${e.message}`; }
+
+                const fpSource = [data.userAgent, data.platform, data.hardwareConcurrency, JSON.stringify(data.screen), JSON.stringify(data.fontsProbe), data.canvasFP, data.webglFP, data.audioFP, data.tz].join('||');
+                data.fingerprintHash = await sha256hex(fpSource);
+                data.estimatedEntropyBits = Math.round(Math.min(128, (Object.keys(data).length * 6) + (data.canvasFP ? 20 : 0) + (data.webglFP ? 18 : 0)));
+                return data;
+            }
+
+            function renderFingerprintCard(fp) {
+                return `
+                    <p><strong>Fingerprint Hash:</strong> ${fp.fingerprintHash}</p>
+                    <p><strong>Estimated Entropy:</strong> ${fp.estimatedEntropyBits} bits</p>
+                    <table>
+                        <tr><th>Property</th><th>Value</th></tr>
+                        <tr><td>User Agent</td><td>${fp.userAgent}</td></tr>
+                        <tr><td>Platform</td><td>${fp.platform}</td></tr>
+                        <tr><td>CPU Cores</td><td>${fp.hardwareConcurrency}</td></tr>
+                        <tr><td>Device Memory</td><td>${fp.deviceMemory || 'N/A'}</td></tr>
+                        <tr><td>Screen</td><td>${fp.screen.width}×${fp.screen.height}, ${fp.screen.colorDepth}bit</td></tr>
+                        <tr><td>Languages</td><td>${fp.languages.join(', ')}</td></tr>
+                        <tr><td>Canvas FP</td><td>${fp.canvasFP}</td></tr>
+                        <tr><td>WebGL FP</td><td>${fp.webglFP}</td></tr>
+                        <tr><td>Audio FP</td><td>${fp.audioFP}</td></tr>
+                    </table>
+                `;
+            }
+
+            async function webrtcTest() {
+                const out = { localIPs: [], publicIPs: [], STUN: 'stun:stun.l.google.com:19302', candidates: [] };
+                try {
+                    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+                    pc.createDataChannel('audit');
+                    pc.onicecandidate = e => {
+                        if (!e.candidate) return;
+                        const cand = e.candidate.candidate;
+                        out.candidates.push(cand);
+                        const ips = cand.match(/([0-9]{1,3}(?:\.[0-9]{1,3}){3})/g) || [];
+                        ips.forEach(ip => {
+                            if (!out.publicIPs.includes(ip) && !out.localIPs.includes(ip)) {
+                                if (ip.startsWith('192.') || ip.startsWith('10.') || ip.startsWith('172.')) out.localIPs.push(ip);
+                                else out.publicIPs.push(ip);
+                            }
+                        });
+                    };
+                    await pc.setLocalDescription(await pc.createOffer());
+                    await new Promise(r => setTimeout(r, 1500));
+                    pc.close();
+                } catch (e) { out.error = e.message; }
+                return out;
+            }
+
+            async function ipInfo() {
+                const out = { ip: null, asn: null, city: null, region: null, country: null, services: [] };
+                const endpoints = ['https://api.ipify.org?format=json', 'https://ifconfig.co/json', 'https://ipinfo.io/json'];
+                for (const url of endpoints) {
+                    try {
+                        const r = await fetch(url, { cache: 'no-cache' });
+                        if (!r.ok) continue;
+                        const j = await r.json();
+                        out.services.push({ url, ok: true, raw: j });
+                        if (!out.ip) out.ip = j.ip || j.ipv4 || j.ip_address || j.address;
+                        if (j.org && !out.asn) out.asn = j.org;
+                        if (j.city) out.city = j.city;
+                        if (j.region) out.region = j.region;
+                        if (j.country) out.country = j.country;
+                    } catch (e) { out.services.push({ url, ok: false, error: e.message }); }
+                }
+                return out;
+            }
+
+            async function adblockTest() {
+                const tests = [];
+                const bait = document.createElement('div');
+                bait.innerHTML = '<div id="adsense_test" class="adsbox ad-banner"></div>';
+                bait.style.position = 'absolute';
+                bait.style.left = '-9999px';
+                document.body.appendChild(bait);
+                const computed = window.getComputedStyle(bait.querySelector('#adsense_test'));
+                tests.push({ method: 'DOM bait', blocked: computed.display === 'none' || computed.visibility === 'hidden' || computed.opacity === '0' });
+                try {
+                    const img = document.createElement('img');
+                    img.src = 'https://pagead2.googlesyndication.com/pagead/images/1x1.gif';
+                    img.style.display = 'none';
+                    document.body.appendChild(img);
+                    await new Promise(r => setTimeout(r, 600));
+                    tests.push({ method: 'external ad image', blocked: img.naturalWidth === 0 && img.naturalHeight === 0 });
+                    document.body.removeChild(img);
+                } catch (e) { tests.push({ method: 'external ad image', error: e.message }); }
+                document.body.removeChild(bait);
+                return tests;
+            }
+
+            function tlsClientInfo() { return { isSecureContext: window.isSecureContext, locationProtocol: location.protocol, remark: 'Full TLS analysis requires server-side tools.' }; }
+
+            async function securityHeadersTest() {
+                try {
+                    const resp = await fetch(window.location.href, { method: 'HEAD' });
+                    const headers = {};
+                    ['Content-Security-Policy', 'Strict-Transport-Security', 'X-Frame-Options', 'X-Content-Type-Options', 'Referrer-Policy'].forEach(h => {
+                        headers[h] = resp.headers.get(h) || 'missing';
+                    });
+                    return headers;
+                } catch (e) { return { error: e.message }; }
+            }
+
+            function storageTest() {
+                const result = {};
+                try { document.cookie = 'audit_test=1'; result.cookiesEnabled = document.cookie.includes('audit_test'); } catch { result.cookiesEnabled = false; }
+                try { localStorage.setItem('audit_test', '1'); result.localStorage = localStorage.getItem('audit_test') === '1'; localStorage.removeItem('audit_test'); } catch { result.localStorage = false; }
+                try { sessionStorage.setItem('audit_test', '1'); result.sessionStorage = sessionStorage.getItem('audit_test') === '1'; sessionStorage.removeItem('audit_test'); } catch { result.sessionStorage = false; }
+                try { indexedDB.open('audit_test').onsuccess = e => result.indexedDB = true; } catch { result.indexedDB = false; }
+                result.serviceWorker = ('serviceWorker' in navigator);
+                return result;
+            }
+
+            async function trackerBlockTest() {
+                const results = [];
+                const urls = ['https://www.google-analytics.com/analytics.js', 'https://connect.facebook.net/en_US/fbevents.js'];
+                for (const u of urls) {
+                    try { const r = await fetch(u, { method: 'HEAD' }); results.push({ url: u, blocked: r.status !== 200 }); }
+                    catch { results.push({ url: u, blocked: true }); }
+                }
+                return results;
+            }
+
+            function uniquenessEstimate(hash, entropyBits) {
+                const bits = Math.min(entropyBits || 48, 128);
+                const n = 1000000;
+                const collisionProb = 1 - Math.exp(-(n * (n - 1)) / (2 * Math.pow(2, bits)));
+
+                return {
+                    entropyBits: bits,
+                    approxCollisionProbability: collisionProb,
+                    approxPopulationUniquePercent: (1 - collisionProb) * 100
+                };
+            }
+
+            function exportJSON(obj) {
+                const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'browser_audit.json';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            }
+
+            async function copyJSON(obj) {
+                try { await navigator.clipboard.writeText(JSON.stringify(obj, null, 2)); return true; } catch { return false; }
+            }
+
+            async function runFull() {
+                results.innerHTML = '';
+                const fp = await fingerprint(); card('Fingerprinting', renderFingerprintCard(fp));
+                const webrtc = await webrtcTest(); card('WebRTC Leak Test', `<ul>${webrtc.localIPs.map(ip => `<li>Local: ${ip}</li>`).join('')} ${webrtc.publicIPs.map(ip => `<li>Public: ${ip}</li>`).join('')}</ul>`);
+                const ip = await ipInfo(); card('Public IP / ASN', `<ul><li>IP: ${ip.ip}</li><li>ASN: ${ip.asn}</li><li>Location: ${ip.city || 'N/A'}, ${ip.region || 'N/A'}, ${ip.country || 'N/A'}</li></ul>`);
+                const ad = await adblockTest(); card('Adblock Test', `<ul>${ad.map(a => `<li>${a.method}: ${a.blocked ? 'Blocked' : 'Allowed'}</li>`).join('')}</ul>`);
+                const tls = tlsClientInfo(); card('TLS Client Hints', `<ul>${Object.entries(tls).map(([k, v]) => `<li>${k}: ${v}</li>`).join('')}</ul>`);
+                const sec = await securityHeadersTest(); card('Security Headers', `<ul>${Object.entries(sec).map(([k, v]) => `<li>${k}: ${v}</li>`).join('')}</ul>`);
+                const stor = storageTest(); card('Storage / Cookies', `<ul>${Object.entries(stor).map(([k, v]) => `<li>${k}: ${v}</li>`).join('')}</ul>`);
+                const tracker = await trackerBlockTest(); card('Third-Party Tracker Block', `<ul>${tracker.map(t => `<li>${t.url}: ${t.blocked ? 'Blocked' : 'Loaded'}</li>`).join('')}</ul>`);
+                const uniq = uniquenessEstimate(fp.fingerprintHash, fp.estimatedEntropyBits);
+                card('Uniqueness Estimate', `<ul><li>Entropy Bits: ${uniq.entropyBits}</li><li>Approx Population Unique %: ${uniq.approxPopulationUniquePercent.toFixed(2)}</li><li>Collision Probability: ${uniq.approxCollisionProbability.toExponential(3)}</li></ul>`);
+                lastReport = { fingerprint: fp, webrtc, ipInfo: ip, adTests: ad, tls, securityHeaders: sec, storage: stor, trackerBlock: tracker, uniqueness: uniq, generated: new Date().toISOString() };
+                return lastReport;
+            }
+
+            el('runAll').addEventListener('click', async () => { el('runAll').disabled = true; await runFull(); el('runAll').disabled = false; });
+            el('export').addEventListener('click', () => { if (Object.keys(lastReport).length) exportJSON(lastReport); });
+            el('copy').addEventListener('click', () => { if (Object.keys(lastReport).length) copyJSON(lastReport); });
+
+            await runFull();
+        })();
+    </script>
+</body>
+
+</html>
