@@ -1,0 +1,74 @@
+! Title: filterlist.resistFingerprinting
+! Description: Ports privacy.resistFingerprinting as much as possible to a content blocker filter list.
+! Version: 2025.10.27
+! Expires: never
+! License: GPL-3.0
+
+! Block screen resolution fingerprinting
+||*.screenresolution$document
+||*.screenresolution$xhr
+||*.screenresolution$subdocument
+
+! Block timezone leaks (force UTC)
+||timezonejs.com^$script
+||*.timezonedetect.com^$script
+||navigator.timezone$document
+||navigator.timezone$subdocument
+
+! Block WebGL fingerprinting (disabling WebGL access)
+||webglfingerprint.com^$document
+||webglfingerprint.com^$script
+||*.webgl$document
+||*.webgl$xhr
+||*.webgl$subdocument
+
+! Block Canvas fingerprinting (disabling canvas element usage)
+||canvasfingerprint.com^$document
+||*.canvas$document
+||*.canvas$xhr
+||*.canvas$subdocument
+
+! Block Audio fingerprinting
+||audiofingerprint.com^$script
+||*.audio$document
+||*.audio$xhr
+||*.audio$subdocument
+
+! Disable access to Media Devices (microphone, camera)
+||navigator.mediaDevices$document
+||navigator.mediaDevices$subdocument
+
+! Block font and plugin-based fingerprinting
+||fontfingerprint.com^$script
+||*.plugin$document
+||*.plugin$xhr
+||*.plugin$subdocument
+
+! Block WebRTC leaks (disabling WebRTC)
+||*.webrtc$xhr
+||*.webrtc$subdocument
+
+! Block device memory and hardware concurrency leaks
+||navigator.hardwareConcurrency$document
+||navigator.hardwareConcurrency$xhr
+||navigator.hardwareConcurrency$subdocument
+||navigator.deviceMemory$document
+||navigator.deviceMemory$xhr
+||navigator.deviceMemory$subdocument
+
+! Block leaks related to localStorage, sessionStorage, and IndexedDB
+||indexeddb$document
+||localstorage$document
+||sessionstorage$document
+
+! Block fetch and XHR-based tracking (suppress fetching of tracking scripts)
+||fetch$script
+||xhr$script
+
+! Prevent leaking of languages, screen size, or any sensitive attributes
+||navigator.languages$document
+||navigator.languages$subdocument
+||screen.width$document
+||screen.height$document
+||screen.availWidth$document
+||screen.availHeight$document
