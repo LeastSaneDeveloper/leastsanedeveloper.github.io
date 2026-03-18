@@ -113,29 +113,34 @@
         </div>
     </div>
     <script>
+        let wakeLock = null;
+        let sasAntisleep = document.getElementById("sas-antisleep");
+
         if ('wakeLock' in navigator) {
             // It's supported
         } else {
-            // TODO: Change sas-antisleep text to tell the user this feature isn't supported
-            console.error('Wake Lock request failed: Feature is not supported');
+            let wakeLockErrorMessage = 'Wake Lock request failed: Feature is not supported';
+            sasAntisleep.innerText = wakeLockErrorMessage;
+            console.error(wakeLockErrorMessage);
         }
-
-        let wakeLock = null;
 
         document.getElementById('enabled').addEventListener('change', async function() {
             if (this.checked) {
                 try {
                     wakeLock = await navigator.wakeLock.request('screen');
                 } catch (err) {
-                    // TODO: Instead of a console error, change sas-antisleep text to tell the user this feature isn't supported
-                    console.error(`Wake Lock request failed: ${err.name}, ${err.message}`);
+                    let wakeLockErrorMessage = `Wake Lock request failed: ${err.name}, ${err.message}`;
+                    sasAntisleep.innerText = wakeLockErrorMessage
+                    console.error(wakeLockErrorMessage);
                 }
             } else {
                 if (wakeLock) {
                     await wakeLock.release();
                     wakeLock = null;
                 } else {
-                    // TODO: Instead of a console error, change sas-antisleep text to tell the user something went wrong
+                    let wakeLockErrorMessage = "Something went wrong when trying to stop anti-sleep"
+                    sasAntisleep.innerText = wakeLockErrorMessage;
+                    console.error(wakeLockErrorMessage);
                 }
             }
         });
