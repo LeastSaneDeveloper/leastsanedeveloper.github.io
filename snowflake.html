@@ -10,7 +10,17 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-}
+        }
+        
+        /* Dark Mode */
+        /* I took this from https://embed-snowflake.torproject.org/embed.css */
+        @media (prefers-color-scheme: dark) {
+          body {
+            /* https://design.firefox.com/photon/visuals/color.html#dark-theme */
+            color: white;
+            background-color: #38383d;
+          }
+        }
     </style>
 </head>
 <body>
