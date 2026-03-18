@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,7 +27,7 @@
             align-items: center;
             gap: 10px;
         }
-        
+
         /* Dark Mode */
         /* I took this from https://embed-snowflake.torproject.org/embed.css */
         @media (prefers-color-scheme: dark) {
@@ -35,10 +36,12 @@
                 color: white;
                 background-color: #38383d;
             }
-            input:checked + .slider {
+
+            input:checked+.slider {
                 background-color: #cc80ff;
             }
-            input:focus + .slider {
+
+            input:focus+.slider {
                 box-shadow: 0 0 1px #cc80ff;
             }
         }
@@ -86,24 +89,26 @@
             border-radius: 50%;
         }
 
-        input:checked + .slider {
+        input:checked+.slider {
             background-color: BlueViolet;
         }
 
-        input:focus + .slider {
+        input:focus+.slider {
             box-shadow: 0 0 1px BlueViolet;
         }
 
-        input:checked + .slider:before {
+        input:checked+.slider:before {
             -webkit-transform: translateX(13px);
             -ms-transform: translateX(13px);
             transform: translateX(13px);
         }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <iframe src="https://snowflake.torproject.org/embed.html" width="320" height="240" frameborder="0" scrolling="no"></iframe>
+        <iframe src="https://snowflake.torproject.org/embed.html" width="320" height="240" frameborder="0"
+            scrolling="no"></iframe>
         <div class="switch-container">
             <p id="sas-antisleep">Screen Anti-Sleep</p>
             <label class="switch">
@@ -124,7 +129,7 @@
             console.error(wakeLockErrorMessage);
         }
 
-        document.getElementById('enabled').addEventListener('change', async function() {
+        document.getElementById('enabled').addEventListener('change', async function () {
             if (this.checked) {
                 try {
                     wakeLock = await navigator.wakeLock.request('screen');
@@ -146,4 +151,5 @@
         });
     </script>
 </body>
+
 </html>
