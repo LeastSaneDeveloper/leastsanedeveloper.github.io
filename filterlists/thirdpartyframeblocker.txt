@@ -5,3 +5,4 @@
 ! License: AGPL-3.0
 
 *$third-party,frame
+*$third-party,subdocument
