@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status</title>
+</head>
+<body>
+    <pre id="statusMessage"></pre>
+    <script>
+        let queryParams = new URLSearchParams(window.location.search);
+        let statusMessage = queryParams.get("message");
+        let statusMessageElement = document.getElementById("statusMessage");
+        statusMessageElement.innerText = statusMessage;
+    </script>
+</body>
+</html>
