@@ -1,6 +1,6 @@
 ! Title: Third-Party Frame Blocker
 ! Description: Blocks all 3rd-party iframes
-! Version: 2026.4.7
+! Version: 2026.4.16
 ! Expires: 1 day
 ! License: AGPL-3.0
 
