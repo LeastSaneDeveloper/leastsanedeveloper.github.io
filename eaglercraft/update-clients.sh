@@ -18,6 +18,7 @@ JS_112_URL="https://bafybeifkhdmjy2phs5w67537wmbeer2upt5culejvbigct6i2gk26t65qy.
 wget -O wasm/1.8.8.zip "$WASM_18_URL"
 FIRST_WASM_18=$(unzip -l wasm/1.8.8.zip | awk 'NR==4 {print $4}')
 unzip wasm/1.8.8.zip "$FIRST_WASM_18" -d wasm
+rm wasm/1.8.8.html
 mv "wasm/$FIRST_WASM_18" wasm/1.8.8.html
 rm wasm/1.8.8.zip
 
@@ -25,6 +26,7 @@ rm wasm/1.8.8.zip
 wget -O wasm/1.12.2.zip "$WASM_112_URL"
 FIRST_WASM_112=$(unzip -l wasm/1.12.2.zip | awk 'NR==4 {print $4}')
 unzip wasm/1.12.2.zip "$FIRST_WASM_112" -d wasm
+rm wasm/1.12.2.html
 mv "wasm/$FIRST_WASM_112" wasm/1.12.2.html
 rm wasm/1.12.2.zip
 
@@ -36,6 +38,7 @@ rm wasm/1.12.2.zip
 wget -O js/1.8.8.zip "$JS_18_URL"
 FIRST_JS_18=$(unzip -l js/1.8.8.zip | awk 'NR==4 {print $4}')
 unzip js/1.8.8.zip "$FIRST_JS_18" -d js
+rm js/1.8.8.html
 mv "js/$FIRST_JS_18" js/1.8.8.html
 rm js/1.8.8.zip
 
@@ -43,5 +46,6 @@ rm js/1.8.8.zip
 wget -O js/1.12.2.zip "$JS_112_URL"
 FIRST_JS_112=$(unzip -l js/1.12.2.zip | awk 'NR==4 {print $4}')
 unzip js/1.12.2.zip "$FIRST_JS_112" -d js
+rm js/1.12.2.html
 mv "js/$FIRST_JS_112" js/1.12.2.html
 rm js/1.12.2.zip
