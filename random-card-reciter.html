@@ -1,101 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Random Card Reciter</title>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Random Card Reciter</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background: #111;
+                color: white;
+                text-align: center;
+                padding-top: 60px;
+            }
 
-<style>
-body {
-    font-family: Arial, sans-serif;
-    background: #111;
-    color: white;
-    text-align: center;
-    padding-top: 60px;
-}
+            #card {
+                font-size: 3rem;
+                margin: 40px;
+            }
 
-#card {
-    font-size: 3rem;
-    margin: 40px;
-}
+            button {
+                font-size: 1.2rem;
+                padding: 12px 24px;
+                margin: 10px;
+                cursor: pointer;
+            }
 
-button {
-    font-size: 1.2rem;
-    padding: 12px 24px;
-    margin: 10px;
-    cursor: pointer;
-}
-</style>
-</head>
-<body>
-<h1>Random Card Reciter</h1>
-<div id="card">Press Start</div>
-<button id="start">Start</button>
-<button id="pause">Pause</button>
-<script>
-const ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"];
-const suits = ["Spades", "Hearts", "Diamonds", "Clubs"];
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-let running = false;
-let paused = false;
+            .hidden {
+                visibility: hidden;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Random Card Reciter</h1>
+        <div id="card">Press Start</div>
+        <button id="start">Start</button>
+        <button id="pause">Pause</button>
+        <button id="toggleCard">Hide Card</button>
 
-function randomChoice(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
-}
+        <script>
+            const ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"];
+            const suits = ["Spades", "Hearts", "Diamonds","Clubs"];
+            const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+            let running = false;
+            let paused = false;
+            let cardHidden = false;
 
-function speak(text) {
-    return new Promise(resolve => {
-        const utter = new SpeechSynthesisUtterance(text);
-        utter.rate = 1;
-        utter.pitch = 1;
-        utter.volume = 1;
-        utter.onend = resolve;
-        speechSynthesis.speak(utter);
-    });
-}
+            function randomChoice(arr) {
+                return arr[Math.floor(Math.random() * arr.length)];
+            }
 
-async function waitWhilePaused() {
-    while (paused) {
-        await sleep(100);
-    }
-}
+            function speak(text) {
+                return new Promise(resolve => {
+                    const utter = new SpeechSynthesisUtterance(text);
+                    utter.rate = 1;
+                    utter.pitch = 1;
+                    utter.volume = 1;
+                    utter.onend = resolve;
+                    speechSynthesis.speak(utter);
+                });
+            }
 
-async function loop() {
-    while (running) {
-        await waitWhilePaused();
-        const rank = randomChoice(ranks);
-        const suit = randomChoice(suits);
-        document.getElementById("card").textContent = `${rank} of ${suit}`;
-        await speak(rank);
-        await sleep(500);
-        await waitWhilePaused();
-        await speak("of");
-        await sleep(500);
-        await waitWhilePaused();
-        await speak(suit);
-        await sleep(2000);
-    }
-}
+            async function waitWhilePaused() {
+                while (paused) {
+                    await sleep(100);
+                }
+            }
 
-document.getElementById("start").onclick = () => {
-    if (running) return;
-    running = true;
-    paused = false;
-    document.getElementById("pause").textContent = "Pause";
-    speechSynthesis.cancel();
-    loop();
-};
-document.getElementById("pause").onclick = () => {
-    if (!running) return;
-    paused = !paused;
-    if (paused) {
-        speechSynthesis.pause();
-        document.getElementById("pause").textContent = "Resume";
-    } else {
-        speechSynthesis.resume();
-        document.getElementById("pause").textContent = "Pause";
-    }
-};
-</script>
-</body>
+            async function loop() {
+                while (running) {
+                    await waitWhilePaused();
+
+                    const rank = randomChoice(ranks);
+                    const suit = randomChoice(suits);
+                    document.getElementById("card").textContent = `${rank} of ${suit}`;
+                    await speak(rank);
+                    await sleep(500);
+                    await waitWhilePaused();
+                    await speak("of");
+                    await sleep(500);
+                    await waitWhilePaused();
+                    await speak(suit);
+                    await sleep(2000);
+                }
+            }
+
+            document.getElementById("start").onclick = () => {
+                if (running) return;
+                running = true;
+                paused = false;
+                document.getElementById("pause").textContent = "Pause";
+                speechSynthesis.cancel();
+                loop();
+            };
+
+            document.getElementById("pause").onclick = () => {
+                if (!running) return;
+                paused = !paused;
+                if (paused) {
+                    speechSynthesis.pause();
+                    document.getElementById("pause").textContent = "Resume";
+                } else {
+                    speechSynthesis.resume();
+                    document.getElementById("pause").textContent = "Pause";
+                }
+            };
+
+            document.getElementById("toggleCard").onclick = () => {
+                cardHidden = !cardHidden;
+                const card = document.getElementById("card");
+                card.classList.toggle("hidden", cardHidden);
+                this.textContent = cardHidden ? "Show Card" : "Hide Card";
+            };
+        </script>
+    </body>
 </html>
