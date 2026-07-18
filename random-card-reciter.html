@@ -81,8 +81,8 @@
 
             async function requestWakeLock() {
                 if (!("wakeLock" in navigator)) return;
-                wakeLock = await navigator.wakeLock.request("screen");
-                wakeLock.addEventListener("release", () => {
+                    wakeLock = await navigator.wakeLock.request("screen");
+                    wakeLock.addEventListener("release", () => {
                     wakeLock = null;
                 });
             }
@@ -92,6 +92,20 @@
                     await wakeLock.release();
                     wakeLock = null;
                 }
+            }
+
+            async function waitForVoices() {
+                if (speechSynthesis.getVoices().length) return;
+                await new Promise(resolve => {
+                    speechSynthesis.onvoiceschanged = resolve;
+                });
+            }
+            
+            function unlockSpeech() {
+                speechSynthesis.cancel();
+                const u = new SpeechSynthesisUtterance("");
+                u.volume = 0;
+                speechSynthesis.speak(u);
             }
 
             function randomChoice(arr) {
@@ -149,10 +163,11 @@
                     paused = false;
                     pauseBtn.textContent = "Pause";
                     startBtn.textContent = "Reset";
-                    await requestWakeLock();
+                    unlockSpeech();
+                    await waitForVoices();
+                    await sleep(50);
                     await speak("Started");
-                    card.textContent = "Started!";
-                    await sleep(700);
+                    await requestWakeLock();
                     for (let i = 0; i < 6 && running; i++) {
                         card.textContent = `Joker (${i + 1})`;
                         await speak("Joe");
@@ -212,6 +227,9 @@
                 let minutes = parseInt(timerInput.value);
                 if (isNaN(minutes) || minutes <= 0) return;
                 memorizationTimerRunning = true;
+                unlockSpeech();
+                await waitForVoices();
+                await requestWakeLock();
                 while (running && memorizationTimerRunning && minutes > 0) {
                     card.textContent = `${minutes} minute(s) remaining`;
                     await speak(
