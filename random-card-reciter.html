@@ -138,7 +138,7 @@
                         await sleep(100);
                         continue;
                     }
-                    await sleep(4000);
+                    await sleep(5000);
                     //TODO: Make logic for checking for interruptions better
                     const rank = randomChoice(ranks);
                     const suit = randomChoice(suits);
@@ -168,6 +168,7 @@
                     await sleep(50);
                     await speak("Started");
                     await requestWakeLock();
+                    await sleep(2000);
                     for (let i = 0; i < 6 && running; i++) {
                         card.textContent = `Joker (${i + 1})`;
                         await speak("Joe");
@@ -223,7 +224,7 @@
             };
 
             memorizationTimerBtn.onclick = async () => {
-                if (!running || memorizationTimerRunning) return;
+                if (memorizationTimerRunning) return;
                 let minutes = parseInt(timerInput.value);
                 if (isNaN(minutes) || minutes <= 0) return;
                 memorizationTimerRunning = true;
