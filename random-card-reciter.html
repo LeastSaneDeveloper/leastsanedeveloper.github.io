@@ -87,11 +87,11 @@
                     card.textContent = `${rank} of ${suit}`;
                     if (timerRunning) continue;
                     await speak(rank);
-                    await sleep(250); 
+                    await sleep(300); 
                     if (timerRunning) continue;
                     await waitWhilePaused();
                     await speak("of");
-                    await sleep(250);
+                    await sleep(300);
                     if (timerRunning) continue;
                     await waitWhilePaused();
                     await speak(suit);
