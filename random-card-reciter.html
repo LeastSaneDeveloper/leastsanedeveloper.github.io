@@ -60,245 +60,244 @@
         <button id="toggleCard">Hide Card</button>
         <button id="rearrange">Rearrange Cards Timer</button>
         <script>
-            <script>
-                const ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"];
-                const suits = ["Spades", "Hearts", "Diamonds", "Clubs"];
-                const card = document.getElementById("card");
-                const startBtn = document.getElementById("start");
-                const pauseBtn = document.getElementById("pause");
-                const toggleCardBtn = document.getElementById("toggleCard");
-                const rearrangeBtn = document.getElementById("rearrange");
-                const timerInput = document.getElementById("timerMinutes");
-                let state = {
-                    mode: "idle",
-                    runId: 0,
-                    hidden: false,
-                    wakeLock: null
-                };
+            const ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"];
+            const suits = ["Spades", "Hearts", "Diamonds", "Clubs"];
+            const card = document.getElementById("card");
+            const startBtn = document.getElementById("start");
+            const pauseBtn = document.getElementById("pause");
+            const toggleCardBtn = document.getElementById("toggleCard");
+            const rearrangeBtn = document.getElementById("rearrange");
+            const timerInput = document.getElementById("timerMinutes");
+            let state = {
+                mode: "idle",
+                runId: 0,
+                hidden: false,
+                wakeLock: null
+            };
+        
+            function randomChoice(arr) {
+                return arr[Math.floor(Math.random() * arr.length)];
+            }
             
-                function randomChoice(arr) {
-                    return arr[Math.floor(Math.random() * arr.length)];
-                }
-                
-                function updateButtons() {
-                    startBtn.textContent = state.mode === "idle" ? "Start" : "Reset";
-                    pauseBtn.textContent = state.mode === "paused" ? "Resume" : "Pause";
-                    rearrangeBtn.disabled = state.mode !== "paused";
-                }
-                
-                async function requestWakeLock() {
-                    if (!("wakeLock" in navigator) || state.wakeLock) return;
-                    try {
-                        state.wakeLock = await navigator.wakeLock.request("screen");
-                        state.wakeLock.addEventListener("release", () => { state.wakeLock = null });
-                    } catch {}
-                }
-                
-                async function releaseWakeLock() {
-                    if (!state.wakeLock) return;
-                    try {
-                        await state.wakeLock.release();
-                    } catch {}
-                    state.wakeLock = null;
-                }
-                
-                async function waitForVoices() {
-                    if (speechSynthesis.getVoices().length) return;
-                    await new Promise(resolve => { speechSynthesis.onvoiceschanged = () => resolve() });
-                }
-                
-                function unlockSpeech() {
-                    speechSynthesis.cancel();
-                    const utter = new SpeechSynthesisUtterance("");
-                    utter.volume = 0;
-                    speechSynthesis.speak(utter);
-                }
-                
-                async function sleep(ms, id) {
-                    const end = performance.now() + ms;
-                    while (performance.now() < end) {
-                        if (id !== state.runId)
-                            return false;
-                        await new Promise(resolve => setTimeout(resolve, 50));
-                    }
-                    return true;
-                }
-                
-                async function speak(text, id) {
+            function updateButtons() {
+                startBtn.textContent = state.mode === "idle" ? "Start" : "Reset";
+                pauseBtn.textContent = state.mode === "paused" ? "Resume" : "Pause";
+                rearrangeBtn.disabled = state.mode !== "paused";
+            }
+            
+            async function requestWakeLock() {
+                if (!("wakeLock" in navigator) || state.wakeLock) return;
+                try {
+                    state.wakeLock = await navigator.wakeLock.request("screen");
+                    state.wakeLock.addEventListener("release", () => { state.wakeLock = null });
+                } catch {}
+            }
+            
+            async function releaseWakeLock() {
+                if (!state.wakeLock) return;
+                try {
+                    await state.wakeLock.release();
+                } catch {}
+                state.wakeLock = null;
+            }
+            
+            async function waitForVoices() {
+                if (speechSynthesis.getVoices().length) return;
+                await new Promise(resolve => { speechSynthesis.onvoiceschanged = () => resolve() });
+            }
+            
+            function unlockSpeech() {
+                speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance("");
+                utter.volume = 0;
+                speechSynthesis.speak(utter);
+            }
+            
+            async function sleep(ms, id) {
+                const end = performance.now() + ms;
+                while (performance.now() < end) {
                     if (id !== state.runId)
                         return false;
-                    speechSynthesis.cancel();
-                    return new Promise(resolve => {
-                        const utter = new SpeechSynthesisUtterance(text);
-                        utter.rate = 1;
-                        utter.pitch = 1;
-                        utter.volume = 1;
-                        utter.onend = () => resolve(id === state.runId);
-                        utter.onerror = () => resolve(false);
-                        speechSynthesis.speak(utter);
-                    });
+                    await new Promise(resolve => setTimeout(resolve, 50));
                 }
-                
-                async function waitUntilResumed(id) {
-                    while (state.mode === "paused") {
-                        if (id !== state.runId)
-                            return false;
-                        await new Promise(resolve => setTimeout(resolve, 50));
-                    }
-                    return id === state.runId;
+                return true;
+            }
+            
+            async function speak(text, id) {
+                if (id !== state.runId)
+                    return false;
+                speechSynthesis.cancel();
+                return new Promise(resolve => {
+                    const utter = new SpeechSynthesisUtterance(text);
+                    utter.rate = 1;
+                    utter.pitch = 1;
+                    utter.volume = 1;
+                    utter.onend = () => resolve(id === state.runId);
+                    utter.onerror = () => resolve(false);
+                    speechSynthesis.speak(utter);
+                });
+            }
+            
+            async function waitUntilResumed(id) {
+                while (state.mode === "paused") {
+                    if (id !== state.runId)
+                        return false;
+                    await new Promise(resolve => setTimeout(resolve, 50));
                 }
-                
-                async function stop() {
-                    state.runId++;
-                    state.mode = "idle";
-                    speechSynthesis.cancel();
-                    await releaseWakeLock();
-                    card.textContent = "Press Start";
-                    updateButtons();
-                }
-                
+                return id === state.runId;
+            }
+            
+            async function stop() {
+                state.runId++;
+                state.mode = "idle";
+                speechSynthesis.cancel();
+                await releaseWakeLock();
+                card.textContent = "Press Start";
                 updateButtons();
+            }
+            
+            updateButtons();
 
-                async function memorizationTimer(minutes, id) {
-                    state.mode = "memorizing";
-                    updateButtons();
-                    while (minutes > 0) {
-                        if (id !== state.runId) return false;
-                        card.textContent = `${minutes} minute${minutes === 1 ? "" : "s"} remaining`;
-                        if (!await speak(
-                            minutes <= 2
-                                ? `${minutes} minute${minutes === 1 ? "" : "s"} remaining. You may start practicing striking cards.`
-                                : `${minutes} minute${minutes === 1 ? "" : "s"} remaining`,
-                            id
-                        )) return false;
-                        if (minutes === 1) break;
-                        if (!await sleep(60000, id)) return false;
-                        minutes--;
-                    }
+            async function memorizationTimer(minutes, id) {
+                state.mode = "memorizing";
+                updateButtons();
+                while (minutes > 0) {
+                    if (id !== state.runId) return false;
+                    card.textContent = `${minutes} minute${minutes === 1 ? "" : "s"} remaining`;
+                    if (!await speak(
+                        minutes <= 2
+                            ? `${minutes} minute${minutes === 1 ? "" : "s"} remaining. You may start practicing striking cards.`
+                            : `${minutes} minute${minutes === 1 ? "" : "s"} remaining`,
+                        id
+                    )) return false;
+                    if (minutes === 1) break;
                     if (!await sleep(60000, id)) return false;
-                    card.textContent = "Time's up!";
-                    return speak("Time's up", id);
+                    minutes--;
                 }
-                
-                async function jokerSequence(id) {
-                    state.mode = "joker";
-                    updateButtons();
-                    for (let i = 1; i <= 6; i++) {
-                        if (id !== state.runId) return false;
-                        card.textContent = `Joker (${i})`;
-                        if (!await speak("Joe", id)) return false;
-                        if (!await sleep(300, id)) return false;
-                        if (!await speak("Ker", id)) return false;
-                        if (!await sleep(2000, id)) return false;
-                    }
-                    return true;
-                }
-                
-                async function announceCard(rank, suit, id) {
-                    card.textContent = `${rank} of ${suit}`;
-                    if (!await speak(rank, id)) return false;
+                if (!await sleep(60000, id)) return false;
+                card.textContent = "Time's up!";
+                return speak("Time's up", id);
+            }
+            
+            async function jokerSequence(id) {
+                state.mode = "joker";
+                updateButtons();
+                for (let i = 1; i <= 6; i++) {
+                    if (id !== state.runId) return false;
+                    card.textContent = `Joker (${i})`;
+                    if (!await speak("Joe", id)) return false;
                     if (!await sleep(300, id)) return false;
-                    if (!await speak("of", id)) return false;
-                    if (!await sleep(300, id)) return false;
-                    return speak(suit, id);
+                    if (!await speak("Ker", id)) return false;
+                    if (!await sleep(2000, id)) return false;
                 }
-                
-                async function cardLoop(id) {
-                    state.mode = "cards";
-                    updateButtons();
-                    while (id === state.runId) {
-                        if (!await waitUntilResumed(id)) return;
-                        if (!await sleep(5000, id)) return;
-                        if (!await waitUntilResumed(id)) return;
-                
-                        const rank = randomChoice(ranks);
-                        const suit = randomChoice(suits);
-                
-                        if (!await announceCard(rank, suit, id)) return;
-                        state.mode = "paused";
-                        updateButtons();
-                    }
-                }
-                
-                async function rearrangeTimer(id) {
-                    state.mode = "rearrange";
-                    updateButtons();
-                    for (let i = 1; i <= 10; i++) {
-                        if (id !== state.runId) return false;
-                        card.textContent = `${i}`;
-                        if (!await speak(i.toString(), id)) return false;
-                        if (!await sleep(1000, id)) return false;
-                    }
-                
-                    card.textContent = "Time's up!";
-                
-                    if (!await speak("Time's up", id)) return false;
-                
+                return true;
+            }
+            
+            async function announceCard(rank, suit, id) {
+                card.textContent = `${rank} of ${suit}`;
+                if (!await speak(rank, id)) return false;
+                if (!await sleep(300, id)) return false;
+                if (!await speak("of", id)) return false;
+                if (!await sleep(300, id)) return false;
+                return speak(suit, id);
+            }
+            
+            async function cardLoop(id) {
+                state.mode = "cards";
+                updateButtons();
+                while (id === state.runId) {
+                    if (!await waitUntilResumed(id)) return;
+                    if (!await sleep(5000, id)) return;
+                    if (!await waitUntilResumed(id)) return;
+            
+                    const rank = randomChoice(ranks);
+                    const suit = randomChoice(suits);
+            
+                    if (!await announceCard(rank, suit, id)) return;
                     state.mode = "paused";
                     updateButtons();
-                
-                    return true;
+                }
+            }
+            
+            async function rearrangeTimer(id) {
+                state.mode = "rearrange";
+                updateButtons();
+                for (let i = 1; i <= 10; i++) {
+                    if (id !== state.runId) return false;
+                    card.textContent = `${i}`;
+                    if (!await speak(i.toString(), id)) return false;
+                    if (!await sleep(1000, id)) return false;
                 }
             
-                async function start() {
-                    const id = ++state.runId;
-                    state.mode = "memorizing";
-                    updateButtons();
-                    unlockSpeech();
-                    await waitForVoices();
-                    await requestWakeLock();
-                    if (!await speak("Started", id)) return;
-                    if (!await sleep(2000, id)) return;
-                
-                    const minutes = Number(timerInput.value);
-                
-                    if (minutes > 0) {
-                        if (!await memorizationTimer(minutes, id)) return;
-                    }
-                
-                    if (!await jokerSequence(id)) return;
-                    await cardLoop(id);
-                    if (id === state.runId) await stop();
+                card.textContent = "Time's up!";
+            
+                if (!await speak("Time's up", id)) return false;
+            
+                state.mode = "paused";
+                updateButtons();
+            
+                return true;
+            }
+        
+            async function start() {
+                const id = ++state.runId;
+                state.mode = "memorizing";
+                updateButtons();
+                unlockSpeech();
+                await waitForVoices();
+                await requestWakeLock();
+                if (!await speak("Started", id)) return;
+                if (!await sleep(2000, id)) return;
+            
+                const minutes = Number(timerInput.value);
+            
+                if (minutes > 0) {
+                    if (!await memorizationTimer(minutes, id)) return;
                 }
-                
-                startBtn.onclick = async () => {
-                    if (state.mode === "idle") {
-                        await start();
-                    } else {
-                        await stop();
-                    }
-                };
-                
-                pauseBtn.onclick = () => {
-                    if (state.mode === "idle" || state.mode === "memorizing" || state.mode === "joker") return;
-                
-                    if (state.mode === "paused") {
-                        state.mode = "cards";
-                        speechSynthesis.resume();
-                    } else {
-                        state.mode = "paused";
-                        speechSynthesis.pause();
-                    }
-                
-                    updateButtons();
-                };
-                
-                toggleCardBtn.onclick = () => {
-                    state.hidden = !state.hidden;
-                    card.classList.toggle("hidden", state.hidden);
-                    toggleCardBtn.textContent = state.hidden ? "Show Card" : "Hide Card";
-                };
-                
-                rearrangeBtn.onclick = async () => {
-                    if (state.mode !== "paused") return;
-                    const id = state.runId;
-                    await rearrangeTimer(id);
-                };
-                
-                document.addEventListener("visibilitychange", async () => {
-                    if (document.visibilityState !== "visible") return;
-                    if (state.mode !== "idle") await requestWakeLock();
-                });
+            
+                if (!await jokerSequence(id)) return;
+                await cardLoop(id);
+                if (id === state.runId) await stop();
+            }
+            
+            startBtn.onclick = async () => {
+                if (state.mode === "idle") {
+                    await start();
+                } else {
+                    await stop();
+                }
+            };
+            
+            pauseBtn.onclick = () => {
+                if (state.mode === "idle" || state.mode === "memorizing" || state.mode === "joker") return;
+            
+                if (state.mode === "paused") {
+                    state.mode = "cards";
+                    speechSynthesis.resume();
+                } else {
+                    state.mode = "paused";
+                    speechSynthesis.pause();
+                }
+            
+                updateButtons();
+            };
+            
+            toggleCardBtn.onclick = () => {
+                state.hidden = !state.hidden;
+                card.classList.toggle("hidden", state.hidden);
+                toggleCardBtn.textContent = state.hidden ? "Show Card" : "Hide Card";
+            };
+            
+            rearrangeBtn.onclick = async () => {
+                if (state.mode !== "paused") return;
+                const id = state.runId;
+                await rearrangeTimer(id);
+            };
+            
+            document.addEventListener("visibilitychange", async () => {
+                if (document.visibilityState !== "visible") return;
+                if (state.mode !== "idle") await requestWakeLock();
+            });
         </script>
     </body>
 </html>
