@@ -36,6 +36,7 @@
         <button id="start">Start</button>
         <button id="pause">Pause</button>
         <button id="toggleCard">Hide Card</button>
+        <button id="rearrange">Rearrange Cards Timer</button>
         <script>
             const ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"];
             const suits = ["Spades", "Hearts", "Diamonds","Clubs"];
@@ -43,11 +44,13 @@
             let running = false;
             let paused = false;
             let cardHidden = false;
+            let timerRunning = false;
 
             const card = document.getElementById("card");
             const startBtn = document.getElementById("start");
             const pauseBtn = document.getElementById("pause");
             const toggleCardBtn = document.getElementById("toggleCard");
+            const rearrangeBtn = document.getElementById("rearrange");
 
             function randomChoice(arr) {
                 return arr[Math.floor(Math.random() * arr.length)];
@@ -60,6 +63,7 @@
                     utter.pitch = 1;
                     utter.volume = 1;
                     utter.onend = resolve;
+                    utter.onerror = resolve;
                     speechSynthesis.speak(utter);
                 });
             }
@@ -73,15 +77,23 @@
             async function loop() {
                 while (running) {
                     await waitWhilePaused();
+                    if (timerRunning) {
+                        await sleep(100);
+                        continue;
+                    }
+                    //TODO: Make logic for checking for interruptions better
                     const rank = randomChoice(ranks);
                     const suit = randomChoice(suits);
-                    card.textContent = `${rank} of ${suit}`;
+                    card.textContent = `${rank} of ${suit}`;     
                     await sleep(2000);
+                    if (timerRunning) continue;
                     await speak(rank);
-                    await sleep(250);
+                    await sleep(250); 
+                    if (timerRunning) continue;
                     await waitWhilePaused();
                     await speak("of");
                     await sleep(250);
+                    if (timerRunning) continue;
                     await waitWhilePaused();
                     await speak(suit);
                 }
@@ -113,6 +125,23 @@
                 card.classList.toggle("hidden", cardHidden);
                 toggleCardBtn.textContent = cardHidden ? "Show Card" : "Hide Card";
             };
+
+            
+            rearrangeBtn.onclick = async () => {
+                if (!running || timerRunning) return;
+                timerRunning = true;
+                speechSynthesis.cancel();
+                for (let i = 1; i <= 10; i++) {
+                    card.textContent = `${i}`;
+                    await speak(i.toString());
+                    await sleep(1000);
+                }
+                card.textContent = "Time's up!";
+                await speak("Time's up");
+            
+                timerRunning = false;
+            };
+
         </script>
     </body>
 </html>
