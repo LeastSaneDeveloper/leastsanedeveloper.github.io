@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Random Card Reciter</title>
+        <title>Card Reciter</title>
         <style>
             body {
                 font-family: Arial, sans-serif;
@@ -46,19 +46,69 @@
                 color: #aaa;
             }
 
+            #config {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+                width: fit-content;
+                margin: 30px auto;
+            }
+            
+            #config > div {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+            }
+            
+            #config label {
+                min-width: 240px;
+                text-align: left;
+            }
+
             .hidden {
                 visibility: hidden;
             }
         </style>
     </head>
     <body>
-        <h1>Random Card Reciter</h1>
+        <h1>Card Reciter</h1>
         <div id="card">Press Start</div>
-        <input id="timerMinutes" type="number" min="1" value="10" placeholder="Minutes for Memorization Time">
+        <br>
+        <div id="config">
+            <div>
+                <label for="memorizationMinutes">Memorization Time (Minutes):</label>
+                <input id="memorizationMinutes" type="number" min="1" value="10" placeholder="Minutes">
+            </div>
+            <div>
+                <label for="totalAmountOfCards">Both Players Total Cards:</label>
+                <input id="totalAmountOfCards" type="number" min="2" value="50" placeholder="Total Card Amount">
+            </div>
+        </div>
         <button id="start">Start</button>
         <button id="pause">Pause</button>
         <button id="toggleCard">Hide Card</button>
-        <button id="rearrange">Rearrange Cards Timer</button>
+        <hr>
+        <div style="margin-top:20px;">
+            <h2>Player 1</h2>
+            <div>
+                Score:
+                <span id="score1">0</span> /
+                <span id="cardsLeft1">52</span>
+            </div>
+            <button id="scoreBtn1">+1</button>
+            <button id="rearrange1">Player 1 Rearrange (0/5)</button>
+        </div>
+        <div style="margin-top:20px;">
+            <h2>Player 2</h2>
+            <div>
+                Score:
+                <span id="score2">0</span> /
+                <span id="cardsLeft2">52</span>
+            </div>
+            <button id="scoreBtn2">+1</button>
+            <button id="rearrange2">Player 2 Rearrange (0/5)</button>
+        </div>
         <script>
             const ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"];
             const suits = ["Spades", "Hearts", "Diamonds", "Clubs"];
@@ -67,22 +117,53 @@
             const pauseBtn = document.getElementById("pause");
             const toggleCardBtn = document.getElementById("toggleCard");
             const rearrangeBtn = document.getElementById("rearrange");
-            const timerInput = document.getElementById("timerMinutes");
+            const memorizationMinutesInput = document.getElementById("memorizationMinutes");
+            const totalCardsInput = document.getElementById("totalAmountOfCards");
+            const config = document.getElementById("config");
+            const rearrangeBtn1 = document.getElementById("rearrange1");
+            const rearrangeBtn2 = document.getElementById("rearrange2");
+            const scoreBtn1 = document.getElementById("scoreBtn1");
+            const scoreBtn2 = document.getElementById("scoreBtn2");
+            const score1 = document.getElementById("score1");
+            const score2 = document.getElementById("score2");
+            const cardsLeft1 = document.getElementById("cardsLeft1");
+            const cardsLeft2 = document.getElementById("cardsLeft2");
+            let player1 = {
+                score: 0,
+                rearranges: 0
+            };
+            let player2 = {
+                score: 0,
+                rearranges: 0
+            };
             let state = {
                 mode: "idle",
                 runId: 0,
                 hidden: false,
                 wakeLock: null
             };
-        
+            
             function randomChoice(arr) {
                 return arr[Math.floor(Math.random() * arr.length)];
+            }
+
+            function updateScoreboard() {
+                const total = Number(totalCardsInput.value) || 0;
+                score1.textContent = player1.score;
+                score2.textContent = player2.score;
+                cardsLeft1.textContent = Math.max(total - player1.score, 0);
+                cardsLeft2.textContent = Math.max(total - player2.score, 0);
+                rearrangeBtn1.textContent = `Player 1 Rearrange (${player1.rearranges}/5)`;
+                rearrangeBtn2.textContent = Player 2 Rearrange (${player2.rearranges}/5)`;
+                rearrangeBtn1.disabled = state.mode !== "paused" || player1.rearranges >= 5;
+                rearrangeBtn2.disabled = state.mode !== "paused" || player2.rearranges >= 5;
             }
             
             function updateButtons() {
                 startBtn.textContent = state.mode === "idle" ? "Start" : "Reset";
                 pauseBtn.textContent = state.mode === "paused" ? "Resume" : "Pause";
                 rearrangeBtn.disabled = state.mode !== "paused";
+                updateScoreboard();
             }
             
             async function requestWakeLock() {
@@ -232,6 +313,14 @@
                 updateButtons();
                 return true;
             }
+
+            async function useRearrange(player) {
+                if (state.mode !== "paused") return;
+                if (player.rearranges >= 5) return;
+                player.rearranges++;
+                updateScoreboard();
+                await rearrangeTimer(state.runId);
+            }
         
             async function start() {
                 const id = ++state.runId;
@@ -243,7 +332,7 @@
                 if (!await speak("Started", id)) return;
                 if (!await sleep(2000, id)) return;
             
-                const minutes = Number(timerInput.value);
+                const minutes = Number(memorizationMinutesInput.value);
             
                 if (minutes > 0) {
                     if (!await memorizationTimer(minutes, id)) return;
@@ -292,6 +381,20 @@
                 if (document.visibilityState !== "visible") return;
                 if (state.mode !== "idle") await requestWakeLock();
             });
+
+            scoreBtn1.onclick = () => {
+                player1.score++;
+                updateScoreboard();
+            };
+            
+            scoreBtn2.onclick = () => {
+                player2.score++;
+                updateScoreboard();
+            };
+            
+            totalCardsInput.oninput = updateScoreboard;
+            rearrangeBtn1.onclick = () => useRearrange(player1);
+            rearrangeBtn2.onclick = () => useRearrange(player2);
         </script>
     </body>
 </html>
