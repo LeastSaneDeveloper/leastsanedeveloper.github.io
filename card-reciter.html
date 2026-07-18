@@ -94,7 +94,7 @@
             <div>
                 Score:
                 <span id="score1">0</span> /
-                <span id="cardsLeft1">52</span>
+                <span id="cardsLeft1">50</span>
             </div>
             <button id="scoreBtn1">+1</button>
             <button id="rearrange1">Player 1 Rearrange (0/5)</button>
@@ -104,7 +104,7 @@
             <div>
                 Score:
                 <span id="score2">0</span> /
-                <span id="cardsLeft2">52</span>
+                <span id="cardsLeft2">50</span>
             </div>
             <button id="scoreBtn2">+1</button>
             <button id="rearrange2">Player 2 Rearrange (0/5)</button>
@@ -141,6 +141,7 @@
                 hidden: false,
                 wakeLock: null
             };
+            let rearranging = false;
             
             function randomChoice(arr) {
                 return arr[Math.floor(Math.random() * arr.length)];
@@ -148,17 +149,30 @@
 
             function updateScoreboard() {
                 const total = Number(totalCardsInput.value) || 0;
-                score1.textContent = player1.score;
-                score2.textContent = player2.score;
-                cardsLeft1.textContent = Math.max(total - player1.score, 0);
-                cardsLeft2.textContent = Math.max(total - player2.score, 0);
+                score1.textContent = Math.min(player1.score, total);
+                score2.textContent = Math.min(player2.score, total);
+                cardsLeft1.textContent = total;
+                cardsLeft2.textContent = total;
+                if (player1.score >= total && total > 0) {
+                    player1.score = total;
+                    speak("Player 1 wins!", state.runId);
+                    stop();
+                    return;
+                }
+                if (player2.score >= total && total > 0) {
+                    player2.score = total;
+                    speak("Player 2 wins!", state.runId);
+                    stop();
+                    return;
+                }
                 rearrangeBtn1.textContent = `Player 1 Rearrange (${player1.rearranges}/5)`;
                 rearrangeBtn2.textContent = `Player 2 Rearrange (${player2.rearranges}/5)`;
-                rearrangeBtn1.disabled = state.mode !== "paused" || player1.rearranges >= 5;
-                rearrangeBtn2.disabled = state.mode !== "paused" || player2.rearranges >= 5;
+                rearrangeBtn1.disabled = state.mode !== "paused" || rearranging || player1.rearranges >= 5;
+                rearrangeBtn2.disabled = state.mode !== "paused" || rearranging || player2.rearranges >= 5;
             }
             
             function updateButtons() {
+                config.style.display = state.mode === "idle" ? "flex" : "none";
                 startBtn.textContent = state.mode === "idle" ? "Start" : "Reset";
                 pauseBtn.textContent = state.mode === "paused" ? "Resume" : "Pause";
                 rearrangeBtn1.disabled = state.mode !== "paused";
@@ -301,6 +315,7 @@
             }
             
             async function rearrangeTimer(id) {
+                rearranging = true;
                 updateButtons();
                 for (let i = 1; i <= 10; i++) {
                     if (id !== state.runId) return false;
