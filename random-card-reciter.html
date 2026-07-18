@@ -110,7 +110,7 @@
                 }
             };
 
-            toggleCard.onclick = () => {
+            toggleCardBtn.onclick = () => {
                 cardHidden = !cardHidden;
                 card.classList.toggle("hidden", cardHidden);
                 toggleCard.textContent = cardHidden ? "Show Card" : "Hide Card";
@@ -118,13 +118,15 @@
 
             rearrangeCardsTimerBtn.onclick = async function() {
                 paused = true;
-                cardHidden = card.classList.toggle("hidden", cardHidden);
+                card.classList.add("hidden");
                 speechSynthesis.cancel();
                 for (let i = 0; i < 11; i++) {
                     await sleep(1000);
-                    await speak(`{i}`);
+                    await speak(i.toString());
                 }
-                if (cardHidden) card.classList.toggle("hidden", cardHidden);
+                if (cardHidden) card.classList.remove("hidden");
+                paused = false;
+                pauseBtn.textContent = "Pause";
             }
         </script>
     </body>
