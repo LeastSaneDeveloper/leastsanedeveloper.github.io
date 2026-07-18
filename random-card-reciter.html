@@ -81,6 +81,7 @@
                         await sleep(100);
                         continue;
                     }
+                    await sleep(4000);
                     //TODO: Make logic for checking for interruptions better
                     const rank = randomChoice(ranks);
                     const suit = randomChoice(suits);
@@ -95,7 +96,7 @@
                     if (timerRunning) continue;
                     await waitWhilePaused();
                     await speak(suit);
-                    await sleep(2000);
+                    pauseBtn.click();
                 }
             }
 
@@ -139,7 +140,7 @@
                 timerRunning = true;
                 speechSynthesis.cancel();
                 for (let i = 1; i <= 10; i++) {
-                    card.textContent = `${i}`;
+                    card.textContent = `${i+1}`;
                     await speak(i.toString());
                     await sleep(1000);
                 }
