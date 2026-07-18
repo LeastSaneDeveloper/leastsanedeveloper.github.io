@@ -231,7 +231,7 @@
                 unlockSpeech();
                 await waitForVoices();
                 await requestWakeLock();
-                while (running && memorizationTimerRunning && minutes > 0) {
+                while (memorizationTimerRunning && minutes > 0) {
                     card.textContent = `${minutes} minute(s) remaining`;
                     await speak(
                         minutes <= 2
@@ -241,21 +241,21 @@
                     if (minutes === 1)
                         break;
                     for (let i = 0; i < 60; i++) {
-                        if (!running || !memorizationTimerRunning)
+                        if (!memorizationTimerRunning)
                             break;
                         await sleep(1000);
                     }
-                    if (!running || !memorizationTimerRunning)
+                    if (!memorizationTimerRunning)
                         break;
                     minutes--;
                 }
-                if (running && memorizationTimerRunning) {
+                if (memorizationTimerRunning) {
                     for (let i = 0; i < 60; i++) {
-                        if (!running || !memorizationTimerRunning)
+                        if (!memorizationTimerRunning)
                             break;
                         await sleep(1000);
                     }
-                    if (running && memorizationTimerRunning) {
+                    if (memorizationTimerRunning) {
                         card.textContent = "Time's up!";
                         await speak("Time's up");
                     }
