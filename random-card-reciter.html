@@ -84,8 +84,7 @@
                     //TODO: Make logic for checking for interruptions better
                     const rank = randomChoice(ranks);
                     const suit = randomChoice(suits);
-                    card.textContent = `${rank} of ${suit}`;     
-                    await sleep(2000);
+                    card.textContent = `${rank} of ${suit}`;
                     if (timerRunning) continue;
                     await speak(rank);
                     await sleep(250); 
@@ -96,6 +95,7 @@
                     if (timerRunning) continue;
                     await waitWhilePaused();
                     await speak(suit);
+                    await sleep(2000);
                 }
             }
 
@@ -138,7 +138,7 @@
                 }
                 card.textContent = "Time's up!";
                 await speak("Time's up");
-            
+                
                 timerRunning = false;
             };
 
