@@ -100,6 +100,7 @@
 
             function speak(text) {
                 return new Promise(resolve => {
+                    speechSynthesis.cancel();
                     const utter = new SpeechSynthesisUtterance(text);
                     utter.rate = 1;
                     utter.pitch = 1;
@@ -117,8 +118,6 @@
             }
 
             async function loop() {
-                await speak("Started");
-                card.textContent = "Started!";
                 while (running) {
                     await waitWhilePaused();
                     if (rearrangeTimerRunning) {
@@ -151,7 +150,9 @@
                     pauseBtn.textContent = "Pause";
                     startBtn.textContent = "Reset";
                     await requestWakeLock();
-                    speechSynthesis.cancel();
+                    await speak("Started");
+                    card.textContent = "Started!";
+                    await sleep(700);
                     for (let i = 0; i < 6 && running; i++) {
                         card.textContent = `Joker (${i + 1})`;
                         await speak("Joe");
@@ -159,7 +160,9 @@
                         await speak("Ker");
                         await sleep(2000);
                     }
-                    if (running) loop();
+                    if (running) { 
+                        await loop();
+                    }
                 } else {
                     running = false;
                     paused = false;
@@ -194,7 +197,6 @@
             rearrangeBtn.onclick = async () => {
                 if (!running || rearrangeTimerRunning) return;
                 rearrangeTimerRunning = true;
-                speechSynthesis.cancel();
                 for (let i = 1; i <= 10; i++) {
                     card.textContent = `${i}`;
                     await speak(i.toString());
