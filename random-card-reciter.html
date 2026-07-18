@@ -59,7 +59,7 @@
         <button id="toggleCard">Hide Card</button>
         <button id="rearrange">Rearrange Cards Timer</button>
         <input id="timerMinutes" type="number" min="1" value="10" placeholder="Minutes">
-        <button id="practiceTimer">Practice Timer</button>
+        <button id="memorizationTimer">Memorization Timer</button>
         <script>
             const ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"];
             const suits = ["Spades", "Hearts", "Diamonds","Clubs"];
@@ -67,8 +67,8 @@
             let running = false;
             let paused = false;
             let cardHidden = false;
-            let timerRunning = false;
-            let practiceTimerRunning = false;
+            let rearrangeTimerRunning = false;
+            let memorizationTimerRunning = false;
             let wakeLock = null;
 
             const card = document.getElementById("card");
@@ -77,7 +77,7 @@
             const toggleCardBtn = document.getElementById("toggleCard");
             const rearrangeBtn = document.getElementById("rearrange");
             const timerInput = document.getElementById("timerMinutes");
-            const practiceTimerBtn = document.getElementById("practiceTimer");
+            const memorizationTimerBtn = document.getElementById("memorizationTimer");
 
             async function requestWakeLock() {
                 if (!("wakeLock" in navigator)) return;
@@ -117,9 +117,11 @@
             }
 
             async function loop() {
+                await speak("Started");
+                card.textContent = "Started!";
                 while (running) {
                     await waitWhilePaused();
-                    if (timerRunning) {
+                    if (rearrangeTimerRunning) {
                         await sleep(100);
                         continue;
                     }
@@ -128,14 +130,14 @@
                     const rank = randomChoice(ranks);
                     const suit = randomChoice(suits);
                     card.textContent = `${rank} of ${suit}`;
-                    if (timerRunning) continue;
+                    if (rearrangeTimerRunning) continue;
                     await speak(rank);
                     await sleep(300); 
-                    if (timerRunning) continue;
+                    if (rearrangeTimerRunning) continue;
                     await waitWhilePaused();
                     await speak("of");
                     await sleep(300);
-                    if (timerRunning) continue;
+                    if (rearrangeTimerRunning) continue;
                     await waitWhilePaused();
                     await speak(suit);
                     pauseBtn.click();
@@ -161,8 +163,8 @@
                 } else {
                     running = false;
                     paused = false;
-                    timerRunning = false;
-                    practiceTimerRunning = false;
+                    rearrangeTimerRunning = false;
+                    memorizationTimerRunning = false;
                     speechSynthesis.cancel();
                     await releaseWakeLock();
                     card.textContent = "Press Start";
@@ -190,8 +192,8 @@
             };
 
             rearrangeBtn.onclick = async () => {
-                if (!running || timerRunning) return;
-                timerRunning = true;
+                if (!running || rearrangeTimerRunning) return;
+                rearrangeTimerRunning = true;
                 speechSynthesis.cancel();
                 for (let i = 1; i <= 10; i++) {
                     card.textContent = `${i}`;
@@ -200,15 +202,15 @@
                 }
                 card.textContent = "Time's up!";
                 await speak("Time's up");
-                timerRunning = false;
+                rearrangeTimerRunning = false;
             };
 
-            practiceTimerBtn.onclick = async () => {
-                if (!running || practiceTimerRunning) return;
+            memorizationTimerBtn.onclick = async () => {
+                if (!running || memorizationTimerRunning) return;
                 let minutes = parseInt(timerInput.value);
                 if (isNaN(minutes) || minutes <= 0) return;
-                practiceTimerRunning = true;
-                while (running && practiceTimerRunning && minutes > 0) {
+                memorizationTimerRunning = true;
+                while (running && memorizationTimerRunning && minutes > 0) {
                     card.textContent = `${minutes} minute(s) remaining`;
                     await speak(
                         minutes <= 2
@@ -218,26 +220,26 @@
                     if (minutes === 1)
                         break;
                     for (let i = 0; i < 60; i++) {
-                        if (!running || !practiceTimerRunning)
+                        if (!running || !memorizationTimerRunning)
                             break;
                         await sleep(1000);
                     }
-                    if (!running || !practiceTimerRunning)
+                    if (!running || !memorizationTimerRunning)
                         break;
                     minutes--;
                 }
-                if (running && practiceTimerRunning) {
+                if (running && memorizationTimerRunning) {
                     for (let i = 0; i < 60; i++) {
-                        if (!running || !practiceTimerRunning)
+                        if (!running || !memorizationTimerRunning)
                             break;
                         await sleep(1000);
                     }
-                    if (running && practiceTimerRunning) {
+                    if (running && memorizationTimerRunning) {
                         card.textContent = "Time's up!";
                         await speak("Time's up");
                     }
                 }
-                practiceTimerRunning = false;
+                memorizationTimerRunning = false;
             };
         </script>
     </body>
