@@ -36,7 +36,7 @@
         <button id="start">Start</button>
         <button id="pause">Pause</button>
         <button id="toggleCard">Hide Card</button>
-
+        <button id="rearrangeCardsTimer">Rearrange Cards Timer</button>
         <script>
             const ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"];
             const suits = ["Spades", "Hearts", "Diamonds","Clubs"];
@@ -44,6 +44,12 @@
             let running = false;
             let paused = false;
             let cardHidden = false;
+
+            const card = document.getElementById("card");
+            const startBtn = document.getElementById("start");
+            const pauseBtn = document.getElementById("pause");
+            const toggleCardBtn = document.getElementById("toggleCard");
+            const rearrangeCardsTimerBtn = document.getElementById("rearrangeCardsTimer");
 
             function randomChoice(arr) {
                 return arr[Math.floor(Math.random() * arr.length)];
@@ -69,7 +75,6 @@
             async function loop() {
                 while (running) {
                     await waitWhilePaused();
-
                     const rank = randomChoice(ranks);
                     const suit = randomChoice(suits);
                     document.getElementById("card").textContent = `${rank} of ${suit}`;
@@ -84,33 +89,43 @@
                 }
             }
 
-            document.getElementById("start").onclick = () => {
+            startBtn.onclick = () => {
                 if (running) return;
                 running = true;
                 paused = false;
-                document.getElementById("pause").textContent = "Pause";
+                pauseBtn.textContent = "Pause";
                 speechSynthesis.cancel();
                 loop();
             };
 
-            document.getElementById("pause").onclick = () => {
+            pauseBtn.onclick = () => {
                 if (!running) return;
                 paused = !paused;
                 if (paused) {
                     speechSynthesis.pause();
-                    document.getElementById("pause").textContent = "Resume";
+                    pauseBtn.textContent = "Resume";
                 } else {
                     speechSynthesis.resume();
-                    document.getElementById("pause").textContent = "Pause";
+                    pauseBtn.textContent = "Pause";
                 }
             };
 
-            document.getElementById("toggleCard").onclick = () => {
+            toggleCard.onclick = () => {
                 cardHidden = !cardHidden;
-                const card = document.getElementById("card");
                 card.classList.toggle("hidden", cardHidden);
-                this.textContent = cardHidden ? "Show Card" : "Hide Card";
+                toggleCard.textContent = cardHidden ? "Show Card" : "Hide Card";
             };
+
+            rearrangeCardsTimerBtn.onclick = async function() {
+                paused = true;
+                cardHidden = card.classList.toggle("hidden", cardHidden);
+                speechSynthesis.cancel();
+                for (let i = 0; i < 11; i++) {
+                    await sleep(1000);
+                    await speak(`{i}`);
+                }
+                if (cardHidden) card.classList.toggle("hidden", cardHidden);
+            }
         </script>
     </body>
 </html>
