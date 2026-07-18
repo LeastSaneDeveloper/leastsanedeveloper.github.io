@@ -220,22 +220,16 @@
             }
             
             async function rearrangeTimer(id) {
-                state.mode = "rearrange";
                 updateButtons();
                 for (let i = 1; i <= 10; i++) {
                     if (id !== state.runId) return false;
                     card.textContent = `${i}`;
                     if (!await speak(i.toString(), id)) return false;
                     if (!await sleep(1000, id)) return false;
-                }
-            
-                card.textContent = "Time's up!";
-            
+                }       
+                card.textContent = "Time's up!";    
                 if (!await speak("Time's up", id)) return false;
-            
-                state.mode = "paused";
                 updateButtons();
-            
                 return true;
             }
         
