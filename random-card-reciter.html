@@ -25,6 +25,27 @@
                 cursor: pointer;
             }
 
+            input[type="number"] {
+                font-size: 1.2rem;
+                padding: 12px;
+                margin: 10px;
+                width: 100px;
+                text-align: center;
+                border: none;
+                border-radius: 6px;
+                background: #222;
+                color: white;
+                outline: none;
+            }
+            
+            input[type="number"]:focus {
+                box-shadow: 0 0 6px #4da3ff;
+            }
+            
+            input[type="number"]::placeholder {
+                color: #aaa;
+            }
+
             .hidden {
                 visibility: hidden;
             }
@@ -37,6 +58,8 @@
         <button id="pause">Pause</button>
         <button id="toggleCard">Hide Card</button>
         <button id="rearrange">Rearrange Cards Timer</button>
+        <input id="timerMinutes" type="number" min="1" value="10" placeholder="Minutes">
+        <button id="practiceTimer">Practice Timer</button>
         <script>
             const ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"];
             const suits = ["Spades", "Hearts", "Diamonds","Clubs"];
@@ -45,12 +68,15 @@
             let paused = false;
             let cardHidden = false;
             let timerRunning = false;
+            let practiceTimerRunning = false;
 
             const card = document.getElementById("card");
             const startBtn = document.getElementById("start");
             const pauseBtn = document.getElementById("pause");
             const toggleCardBtn = document.getElementById("toggleCard");
             const rearrangeBtn = document.getElementById("rearrange");
+            const timerInput = document.getElementById("timerMinutes");
+            const practiceTimerBtn = document.getElementById("practiceTimer");
 
             function randomChoice(arr) {
                 return arr[Math.floor(Math.random() * arr.length)];
@@ -100,20 +126,31 @@
                 }
             }
 
-            startBtn.onclick = async function() {
-                if (running) return;
-                running = true;
-                paused = false;
-                pauseBtn.textContent = "Pause";
-                speechSynthesis.cancel();
-                for (let i = 0; i < 6; i++) {
-                    card.textContent = `Joker (${i})`;
-                    await speak("Joe");
-                    await sleep(300);
-                    await speak ("Ker");
-                    await sleep(2000);
+            startBtn.onclick = async function () {
+                if (!running) {
+                    running = true;
+                    paused = false;
+                    pauseBtn.textContent = "Pause";
+                    startBtn.textContent = "Reset";
+                    speechSynthesis.cancel();
+                    for (let i = 0; i < 6; i++) {
+                        card.textContent = `Joker (${i+1})`;
+                        await speak("Joe");
+                        await sleep(300);
+                        await speak("Ker");
+                        await sleep(2000);
+                    }
+                    loop();
+                } else {
+                    running = false;
+                    paused = false;
+                    timerRunning = false;
+                    practiceTimerRunning = false;
+                    speechSynthesis.cancel();
+                    card.textContent = "Press Start";
+                    pauseBtn.textContent = "Pause";
+                    startBtn.textContent = "Start";
                 }
-                loop();
             };
 
             pauseBtn.onclick = () => {
@@ -134,7 +171,6 @@
                 toggleCardBtn.textContent = cardHidden ? "Show Card" : "Hide Card";
             };
 
-            
             rearrangeBtn.onclick = async () => {
                 if (!running || timerRunning) return;
                 timerRunning = true;
@@ -146,10 +182,35 @@
                 }
                 card.textContent = "Time's up!";
                 await speak("Time's up");
-                
                 timerRunning = false;
             };
 
+            practiceTimerBtn.onclick = async () => {
+                if (!running || practiceTimerRunning) return;
+                let minutes = parseInt(timerInput.value);
+                if (isNaN(minutes) || minutes <= 0) return;
+                practiceTimerRunning = true;
+                while (minutes > 0 && running && practiceTimerRunning) {
+                    card.textContent = `${minutes} minute(s) remaining`;
+                    await speak(
+                        minutes <= 2
+                            ? `${minutes} minute${minutes === 1 ? "" : "s"} remaining. You may start practicing striking cards.`
+                            : `${minutes} minute${minutes === 1 ? "" : "s"} remaining`
+                    );
+                    if (minutes === 1)
+                        break;
+                    await sleep(60000);
+                    if (!running || !practiceTimerRunning)
+                        break;
+                    minutes--;
+                }
+                if (running && practiceTimerRunning) {
+                    await sleep(60000);
+                    card.textContent = `Time's up!`;
+                    await speak("Time's up");
+                }
+                practiceTimerRunning = false;
+            };
         </script>
     </body>
 </html>
