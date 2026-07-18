@@ -36,7 +36,6 @@
         <button id="start">Start</button>
         <button id="pause">Pause</button>
         <button id="toggleCard">Hide Card</button>
-        <button id="rearrangeCardsTimer">Rearrange Cards Timer</button>
         <script>
             const ranks = ["Ace", "2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King"];
             const suits = ["Spades", "Hearts", "Diamonds","Clubs"];
@@ -49,7 +48,6 @@
             const startBtn = document.getElementById("start");
             const pauseBtn = document.getElementById("pause");
             const toggleCardBtn = document.getElementById("toggleCard");
-            const rearrangeCardsTimerBtn = document.getElementById("rearrangeCardsTimer");
 
             function randomChoice(arr) {
                 return arr[Math.floor(Math.random() * arr.length)];
@@ -77,13 +75,13 @@
                     await waitWhilePaused();
                     const rank = randomChoice(ranks);
                     const suit = randomChoice(suits);
-                    document.getElementById("card").textContent = `${rank} of ${suit}`;
+                    card.textContent = `${rank} of ${suit}`;
                     await sleep(2000);
                     await speak(rank);
-                    await sleep(500);
+                    await sleep(250);
                     await waitWhilePaused();
                     await speak("of");
-                    await sleep(500);
+                    await sleep(250);
                     await waitWhilePaused();
                     await speak(suit);
                 }
@@ -113,21 +111,8 @@
             toggleCardBtn.onclick = () => {
                 cardHidden = !cardHidden;
                 card.classList.toggle("hidden", cardHidden);
-                toggleCard.textContent = cardHidden ? "Show Card" : "Hide Card";
+                toggleCardBtn.textContent = cardHidden ? "Show Card" : "Hide Card";
             };
-
-            rearrangeCardsTimerBtn.onclick = async function() {
-                paused = true;
-                card.classList.add("hidden");
-                speechSynthesis.cancel();
-                for (let i = 0; i < 11; i++) {
-                    await sleep(1000);
-                    await speak(i.toString());
-                }
-                if (cardHidden) card.classList.remove("hidden");
-                paused = false;
-                pauseBtn.textContent = "Pause";
-            }
         </script>
     </body>
 </html>
