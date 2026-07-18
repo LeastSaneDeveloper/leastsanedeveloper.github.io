@@ -325,8 +325,7 @@
                 }       
                 card.textContent = "Time's up!";    
                 if (!await speak("Time's up", id)) return false;
-                rearrangeBtn1.disabled = false;
-                rearrangeBtn2.disabled = false;
+                rearranging = false;
                 updateButtons();
                 return true;
             }
