@@ -313,18 +313,34 @@
                     updateButtons();
                 }
             }
-            
+                        
             async function rearrangeTimer(id) {
                 rearranging = true;
                 updateButtons();
                 for (let i = 1; i <= 10; i++) {
-                    if (id !== state.runId) return false;
+                    if (id !== state.runId) {
+                        rearranging = false;
+                        updateButtons();
+                        return false;
+                    }
                     card.textContent = `${i}`;
-                    if (!await speak(i.toString(), id)) return false;
-                    if (!await sleep(1000, id)) return false;
-                }       
-                card.textContent = "Time's up!";    
-                if (!await speak("Time's up", id)) return false;
+                    if (!await speak(i.toString(), id)) {
+                        rearranging = false;
+                        updateButtons();
+                        return false;
+                    }
+                    if (!await sleep(1000, id)) {
+                        rearranging = false;
+                        updateButtons();
+                        return false;
+                    }
+                }
+                card.textContent = "Time's up!";
+                if (!await speak("Time's up", id)) {
+                    rearranging = false;
+                    updateButtons();
+                    return false;
+                }
                 rearranging = false;
                 updateButtons();
                 return true;
@@ -345,6 +361,7 @@
                 unlockSpeech();
                 await waitForVoices();
                 await requestWakeLock();
+                card.textContent = "Started!";
                 if (!await speak("Started", id)) return;
                 if (!await sleep(2000, id)) return;
                 const minutes = Number(memorizationMinutesInput.value);
