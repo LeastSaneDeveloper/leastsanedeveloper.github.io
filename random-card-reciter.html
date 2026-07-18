@@ -99,7 +99,7 @@
                 }
             }
 
-            startBtn.onclick = () => {
+            startBtn.onclick = async function() {
                 if (running) return;
                 running = true;
                 paused = false;
