@@ -78,6 +78,7 @@
                     const rank = randomChoice(ranks);
                     const suit = randomChoice(suits);
                     document.getElementById("card").textContent = `${rank} of ${suit}`;
+                    await sleep(2000);
                     await speak(rank);
                     await sleep(500);
                     await waitWhilePaused();
@@ -85,7 +86,6 @@
                     await sleep(500);
                     await waitWhilePaused();
                     await speak(suit);
-                    await sleep(2000);
                 }
             }
 
