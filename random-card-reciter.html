@@ -106,7 +106,7 @@
                 pauseBtn.textContent = "Pause";
                 speechSynthesis.cancel();
                 for (let i = 0; i < 6; i++) {
-                    card.textContent = `${Joker}`;
+                    card.textContent = `Joker (${i})`;
                     await speak("Joe");
                     await sleep(300);
                     await speak ("Ker");
