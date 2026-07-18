@@ -147,6 +147,12 @@
                 return arr[Math.floor(Math.random() * arr.length)];
             }
 
+            function randomNum(x, y) {
+              z = Math.ceil(x);
+              w = Math.floor(y);
+              return Math.floor(Math.random() * (z - w + 1)) + z;
+            }
+
             function updateScoreboard() {
                 const total = Number(totalCardsInput.value) || 0;
                 score1.textContent = Math.min(player1.score, total);
@@ -283,7 +289,7 @@
                     if (id !== state.runId) return false;
                     card.textContent = `Joker (${i})`;
                     if (!await speak("Joe", id)) return false;
-                    if (!await sleep(300, id)) return false;
+                    if (!await sleep(300 + randomNum(-50, 50), id)) return false;
                     if (!await speak("Ker", id)) return false;
                     if (!await sleep(2000, id)) return false;
                 }
@@ -293,9 +299,9 @@
             async function announceCard(rank, suit, id) {
                 card.textContent = `${rank} of ${suit}`;
                 if (!await speak(rank, id)) return false;
-                if (!await sleep(300, id)) return false;
+                if (!await sleep(300 + randomNum(-50, 50), id)) return false;
                 if (!await speak("of", id)) return false;
-                if (!await sleep(300, id)) return false;
+                if (!await sleep(150 + randomNum(-50, 50), id)) return false;
                 return speak(suit, id);
             }
             
