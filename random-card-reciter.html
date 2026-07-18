@@ -69,6 +69,7 @@
             let cardHidden = false;
             let timerRunning = false;
             let practiceTimerRunning = false;
+            let wakeLock = null;
 
             const card = document.getElementById("card");
             const startBtn = document.getElementById("start");
@@ -77,6 +78,21 @@
             const rearrangeBtn = document.getElementById("rearrange");
             const timerInput = document.getElementById("timerMinutes");
             const practiceTimerBtn = document.getElementById("practiceTimer");
+
+            async function requestWakeLock() {
+                if (!("wakeLock" in navigator)) return;
+                wakeLock = await navigator.wakeLock.request("screen");
+                wakeLock.addEventListener("release", () => {
+                    wakeLock = null;
+                });
+            }
+            
+            async function releaseWakeLock() {
+                if (wakeLock) {
+                    await wakeLock.release();
+                    wakeLock = null;
+                }
+            }
 
             function randomChoice(arr) {
                 return arr[Math.floor(Math.random() * arr.length)];
@@ -132,21 +148,23 @@
                     paused = false;
                     pauseBtn.textContent = "Pause";
                     startBtn.textContent = "Reset";
+                    await requestWakeLock();
                     speechSynthesis.cancel();
-                    for (let i = 0; i < 6; i++) {
-                        card.textContent = `Joker (${i+1})`;
+                    for (let i = 0; i < 6 && running; i++) {
+                        card.textContent = `Joker (${i + 1})`;
                         await speak("Joe");
                         await sleep(300);
                         await speak("Ker");
                         await sleep(2000);
                     }
-                    loop();
+                    if (running) loop();
                 } else {
                     running = false;
                     paused = false;
                     timerRunning = false;
                     practiceTimerRunning = false;
                     speechSynthesis.cancel();
+                    await releaseWakeLock();
                     card.textContent = "Press Start";
                     pauseBtn.textContent = "Pause";
                     startBtn.textContent = "Start";
@@ -190,7 +208,7 @@
                 let minutes = parseInt(timerInput.value);
                 if (isNaN(minutes) || minutes <= 0) return;
                 practiceTimerRunning = true;
-                while (minutes > 0 && running && practiceTimerRunning) {
+                while (running && practiceTimerRunning && minutes > 0) {
                     card.textContent = `${minutes} minute(s) remaining`;
                     await speak(
                         minutes <= 2
@@ -199,15 +217,25 @@
                     );
                     if (minutes === 1)
                         break;
-                    await sleep(60000);
+                    for (let i = 0; i < 60; i++) {
+                        if (!running || !practiceTimerRunning)
+                            break;
+                        await sleep(1000);
+                    }
                     if (!running || !practiceTimerRunning)
                         break;
                     minutes--;
                 }
                 if (running && practiceTimerRunning) {
-                    await sleep(60000);
-                    card.textContent = `Time's up!`;
-                    await speak("Time's up");
+                    for (let i = 0; i < 60; i++) {
+                        if (!running || !practiceTimerRunning)
+                            break;
+                        await sleep(1000);
+                    }
+                    if (running && practiceTimerRunning) {
+                        card.textContent = "Time's up!";
+                        await speak("Time's up");
+                    }
                 }
                 practiceTimerRunning = false;
             };
