@@ -176,7 +176,7 @@
                 timerRunning = true;
                 speechSynthesis.cancel();
                 for (let i = 1; i <= 10; i++) {
-                    card.textContent = `${i+1}`;
+                    card.textContent = `${i}`;
                     await speak(i.toString());
                     await sleep(1000);
                 }
