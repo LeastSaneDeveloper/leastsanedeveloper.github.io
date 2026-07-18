@@ -274,6 +274,8 @@
                 if (!await sleep(60000, id)) return false;
                 card.textContent = "Time's up!";
                 return speak("Time's up", id);
+                rearrangeBtn1.disabled = false;
+                rearrangeBtn2.disabled = false;
             }
             
             async function jokerSequence(id) {
